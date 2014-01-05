@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UITesting;
+﻿using Microsoft.VisualStudio.TestTools.UITesting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +16,7 @@ namespace CodedUI.DebuggingHelpers
         private const int DEFAULT_DEPTH = 3;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private static Type AncestorType = typeof(UITestControl);
+        private static readonly Type AncestorType = typeof(UITestControl);
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private const BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
@@ -115,7 +115,7 @@ namespace CodedUI.DebuggingHelpers
 
         public static LoadedUITestControl LoadTree(UITestControl source, int maxDepth, LoadingMechanism loadingMechanism, params string[] blackOrWhiteList)
         {
-            return new LoadedUITestControl(source, maxDepth, new WaitFor<object>(TimeSpan.FromMilliseconds(100)), loadingMechanism, blackOrWhiteList.ToList());
+            return new LoadedUITestControl(source, maxDepth, new WaitFor<object>(TimeSpan.FromMilliseconds(200)), loadingMechanism, blackOrWhiteList.ToList());
         }
 
         private LoadedUITestControl(UITestControl source, int maxDepth, WaitFor<object> waitFor, LoadingMechanism loadingMechanism, List<string> blackOrWhiteList)
