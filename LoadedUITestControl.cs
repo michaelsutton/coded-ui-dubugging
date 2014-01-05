@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UITesting;
+﻿using Microsoft.VisualStudio.TestTools.UITest.Extension;
+using Microsoft.VisualStudio.TestTools.UITesting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,10 +11,22 @@ namespace CodedUI.DebuggingHelpers
     [DebuggerDisplay("{DebuggerDisplayValue,nq}", Type = "{DebuggerDisplayType,nq}")]
     public class LoadedUITestControl
     {
-        #region Constants
+        #region Defaults/Constants
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private const int DEFAULT_DEPTH = 3;
+        private static int DefaultDepth()
+        {
+            return 2;
+        }
+
+        private static LoadingMechanism DefaultLoadingMechanism()
+        {
+            return LoadingMechanism.BlackList;
+        }
+
+        private static TimeSpan DefaultTimeout()
+        {
+            return TimeSpan.FromMilliseconds(200);
+        }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private static readonly Type AncestorType = typeof(UITestControl);
@@ -28,6 +41,13 @@ namespace CodedUI.DebuggingHelpers
         public enum LoadingMechanism
         {
             BlackList, WhiteList
+        }
+
+        private class Configuration
+        {
+            public LoadingMechanism LoadingMechanism { get; set; }
+            public List<string> BlackOrWhiteList { get; set; }
+            public WaitFor<object> WaitFor { get; set; }
         }
 
         [DebuggerDisplay("{Value}", Name = "{Name,nq}", Type = "{Type.ToString(),nq}")]
@@ -63,14 +83,8 @@ namespace CodedUI.DebuggingHelpers
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private Property[] _properties;
 
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private List<string> _blackOrWhiteList;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private LoadingMechanism _loadingMechanism;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        WaitFor<object> _waitFor;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)] 
+        private readonly Configuration _configuration;
 
         #endregion
 
@@ -98,32 +112,69 @@ namespace CodedUI.DebuggingHelpers
 
         #region Constructor & LoadTree
 
-        public static LoadedUITestControl LoadTree(UITestControl source, LoadingMechanism loadingMechanism, params string[] blackOrWhiteList)
+        public static LoadedUITestControl LoadTree(UITestControl source, TimeSpan timeout, params string[] blackOrWhiteList)
         {
-            return LoadTree(source, DEFAULT_DEPTH, loadingMechanism, blackOrWhiteList);
+            return LoadTree(source, DefaultDepth(), timeout, DefaultLoadingMechanism(), blackOrWhiteList);
         }
 
-        public static LoadedUITestControl LoadTree(UITestControl source,int maxDepth, params string[] blackOrWhiteList)
+        public static LoadedUITestControl LoadTree(UITestControl source, LoadingMechanism loadingMechanism, params string[] blackOrWhiteList)
         {
-            return LoadTree(source, maxDepth, LoadingMechanism.BlackList, blackOrWhiteList);
+            return LoadTree(source, DefaultDepth(), DefaultTimeout(), loadingMechanism, blackOrWhiteList);
+        }
+
+        public static LoadedUITestControl LoadTree(UITestControl source, int maxDepth, params string[] blackOrWhiteList)
+        {
+            return LoadTree(source, maxDepth, DefaultTimeout(), DefaultLoadingMechanism(), blackOrWhiteList);
         }
 
         public static LoadedUITestControl LoadTree(UITestControl source, params string[] blackOrWhiteList)
         {
-            return LoadTree(source, DEFAULT_DEPTH, LoadingMechanism.BlackList, blackOrWhiteList);
+            return LoadTree(source, DefaultDepth(), DefaultTimeout(), DefaultLoadingMechanism(), blackOrWhiteList);
         }
 
-        public static LoadedUITestControl LoadTree(UITestControl source, int maxDepth, LoadingMechanism loadingMechanism, params string[] blackOrWhiteList)
+        public static LoadedUITestControl LoadTree(UITestControl source, int maxDepth, TimeSpan timeout, LoadingMechanism loadingMechanism, params string[] blackOrWhiteList)
         {
-            return new LoadedUITestControl(source, maxDepth, new WaitFor<object>(TimeSpan.FromMilliseconds(200)), loadingMechanism, blackOrWhiteList.ToList());
+            ValidateSourceIsBound(source);
+
+            var configuration = new Configuration()
+            {
+                LoadingMechanism = loadingMechanism,
+                BlackOrWhiteList = blackOrWhiteList.ToList(),
+                WaitFor = new WaitFor<object>(timeout)
+            };
+
+            return new LoadedUITestControl(source, maxDepth, configuration);
         }
 
-        private LoadedUITestControl(UITestControl source, int maxDepth, WaitFor<object> waitFor, LoadingMechanism loadingMechanism, List<string> blackOrWhiteList)
+        private static void ValidateSourceIsBound(UITestControl source)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            if (SourceIsBound(source)) return;
+
+            try
+            {
+                Debugger.NotifyOfCrossThreadDependency();
+                source.Find();
+            }
+
+            catch (UITestException ex)
+            {
+                throw new ArgumentException("source must be a live object. see inner excption for details", ex);
+            }
+        }
+
+        private static bool SourceIsBound(UITestControl source)
+        {
+            var prop = AncestorType.GetProperty("IsBound", BindingFlags.NonPublic | BindingFlags.GetProperty | BindingFlags.Instance);
+            return (bool)prop.GetValue(source);
+        }
+
+        private LoadedUITestControl(UITestControl source, int maxDepth, Configuration configuration)
         {
             _source = source;
-            _blackOrWhiteList = blackOrWhiteList ?? new List<string>();
-            _loadingMechanism = loadingMechanism;
-            _waitFor = waitFor;
+            _configuration = configuration;
 
             LoadProperties();
             LoadChildren(maxDepth - 1);
@@ -173,7 +224,7 @@ namespace CodedUI.DebuggingHelpers
 
             Debugger.NotifyOfCrossThreadDependency();
             _children = new List<LoadedUITestControl>(from child in _source.GetChildren()
-                                                      select new LoadedUITestControl(child, maxDepth, _waitFor, _loadingMechanism, _blackOrWhiteList));
+                                                      select new LoadedUITestControl(child, maxDepth, _configuration));
         }
 
         private void LoadProperties()
@@ -211,7 +262,7 @@ namespace CodedUI.DebuggingHelpers
                 object value = null;
                 try
                 {
-                    value = _waitFor.Run(() => prop.GetValue(_source, null));
+                    value = _configuration.WaitFor.Run(() => prop.GetValue(_source, null));
                 }
 
                 catch (TimeoutException)
@@ -242,13 +293,13 @@ namespace CodedUI.DebuggingHelpers
                 return false;
             }
 
-            switch (_loadingMechanism)
+            switch (_configuration.LoadingMechanism)
             {
                 case LoadingMechanism.BlackList:
-                    return !_blackOrWhiteList.Contains(prop.Name);
+                    return !_configuration.BlackOrWhiteList.Contains(prop.Name);
 
                 case LoadingMechanism.WhiteList:
-                    return _blackOrWhiteList.Contains(prop.Name);
+                    return _configuration.BlackOrWhiteList.Contains(prop.Name);
 
                 default: return false;
             }
@@ -256,14 +307,14 @@ namespace CodedUI.DebuggingHelpers
 
         private void IgnoreProperty(PropertyInfo prop)
         {
-            switch (_loadingMechanism)
+            switch (_configuration.LoadingMechanism)
             {
                 case LoadingMechanism.BlackList:
-                    _blackOrWhiteList.Add(prop.Name);
+                    _configuration.BlackOrWhiteList.Add(prop.Name);
                     break;
 
                 case LoadingMechanism.WhiteList:
-                    _blackOrWhiteList.RemoveAll(s => s.Equals(prop.Name));
+                    _configuration.BlackOrWhiteList.RemoveAll(s => s.Equals(prop.Name));
                     break;
             }
         }

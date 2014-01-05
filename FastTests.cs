@@ -23,12 +23,8 @@ namespace CodedUI.DebuggingHelpers
         [TestMethod]
         public void Test()
         {
-            var process = Process.GetProcessesByName("HelloPrismDemo").FirstOrDefault();
+            var process = Process.GetProcessesByName("iexplore").FirstOrDefault();
             var app = ApplicationUnderTest.FromProcess(process);
-
-            WpfListItem root = new WpfListItem(app);
-            root.SearchProperties["Name"] = "me";
-            root.Find();
 
             var loaded = LoadedUITestControl.LoadTree(app);
             Thread.Sleep(TimeSpan.FromHours(1));

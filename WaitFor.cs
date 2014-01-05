@@ -1,9 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+
+// based on: https://github.com/Lokad/lokad-data-platform/blob/master/Platform.TestClient/WaitFor.cs
+// this version was modified to fit my need for a reusable object, and was customized for this current issue,
+// a coded ui long-running property call.
+
+// the method used in this class for aborting the long-running thread is 
+// usallly unsafe and should be avoided. but, in this particular case its 
+// the only workaround. since the Coded UI platform runs on the COM STA mode.
 
 namespace CodedUI.DebuggingHelpers
 {
@@ -15,7 +19,7 @@ namespace CodedUI.DebuggingHelpers
     {
         readonly TimeSpan _timeout;
         Thread _watcher;
-        object _sync;
+        readonly object _sync;
         bool _completed;
 
         /// <summary>
@@ -34,6 +38,7 @@ namespace CodedUI.DebuggingHelpers
         private void Watch(object obj)
         {
             var watchedThread = obj as Thread;
+            if (watchedThread == null) return;
 
             lock (_sync)
             {
@@ -74,6 +79,12 @@ namespace CodedUI.DebuggingHelpers
 
             try
             {
+                // using the ThreadPool makes much more sense. but currently causes a 
+                // rare bug while debugging 
+                //
+                // ThreadPool.QueueUserWorkItem(Watch, Thread.CurrentThread);
+
+                // TODO: avoid running a new thread every call to Run
                 _watcher = new Thread(Watch);
                 _watcher.Start(Thread.CurrentThread);
                 return function();
