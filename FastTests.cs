@@ -23,11 +23,10 @@ namespace CodedUI.DebuggingHelpers
         [TestMethod]
         public void Test()
         {
-            var process = Process.GetProcessesByName("iexplore").FirstOrDefault();
+            var process = Process.GetProcessesByName("YourApp").FirstOrDefault();
             var app = ApplicationUnderTest.FromProcess(process);
-
             var loaded = LoadedUITestControl.LoadTree(app);
-            Thread.Sleep(TimeSpan.FromHours(1));
+            Debugger.Break();
         }
     }
 }

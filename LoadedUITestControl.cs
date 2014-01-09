@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UITest.Extension;
+﻿using CodedUI.DebuggingHelpers.Timeout;
+using Microsoft.VisualStudio.TestTools.UITest.Extension;
 using Microsoft.VisualStudio.TestTools.UITesting;
 using System;
 using System.Collections.Generic;
@@ -237,10 +238,34 @@ namespace CodedUI.DebuggingHelpers
 
         private void LoadUITestControlProperties()
         {
-            ControlType = _source.ControlType;
-            FriendlyName = _source.FriendlyName;
-            Name = _source.Name;
-            ClassName = _source.ClassName;
+            ControlType = TryEvaluatingFunc(() => _source.ControlType);
+            FriendlyName = TryEvaluatingStringProp(() => _source.FriendlyName, "FriendlyName");
+            Name = TryEvaluatingStringProp(() => _source.Name, "Name");
+            ClassName = TryEvaluatingStringProp(() => _source.ClassName, "ClassName");
+        }
+
+        private TResult TryEvaluatingFunc<TResult>(Func<TResult> func)
+        {
+            try
+            {
+                return func();
+            }
+            catch (Exception)
+            {
+                return default(TResult);
+            }
+        }
+
+        private string TryEvaluatingStringProp(Func<string> func, string propName)
+        {
+            try
+            {
+                return func();
+            }
+            catch (Exception ex)
+            {
+                return String.Format("'{0}' threw an exception of type '{1}'", propName, ex.GetType().Name);
+            }
         }
 
         private Property[] LoadDynamicProperties()
@@ -272,7 +297,8 @@ namespace CodedUI.DebuggingHelpers
 
                 catch (Exception ex)
                 {
-                    value = ex;
+                    var exName = ex.InnerException != null ? ex.InnerException.GetType().Name : ex.GetType().Name;
+                    value = String.Format("'{0}' threw an exception of type '{1}'", prop.Name, exName);
                 }
 
                 if (value != null)

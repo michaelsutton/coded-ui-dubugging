@@ -6,16 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodedUI.DebuggingHelpers", "CodedUI.DebuggingHelpers.csproj", "{C1EAD383-65B3-463E-A180-F81F1E298FE1}"
 EndProject
 Global
-	GlobalSection(TeamFoundationVersionControl) = preSolution
-		SccNumberOfProjects = 1
-		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-		SccTeamFoundationServer = https://tfs11.codevalue.net/tfs/defaultcollection
-		SccProjectUniqueName0 = CodedUI.DebuggingHelpers.csproj
-		SccProjectName0 = .
-		SccAuxPath0 = https://tfs11.codevalue.net/tfs/defaultcollection
-		SccLocalPath0 = .
-		SccProvider0 = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU

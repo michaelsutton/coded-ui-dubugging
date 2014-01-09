@@ -68,10 +68,13 @@
     </CodeAnalysisDependentAssemblyPaths>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Timeout\IAbortService.cs" />
     <Compile Include="FastTests.cs" />
     <Compile Include="LoadedUITestControl.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="WaitFor.cs" />
+    <Compile Include="Timeout\ImprovedAbortService.cs" />
+    <Compile Include="Timeout\SimpleAbortService.cs" />
+    <Compile Include="Timeout\WaitFor.cs" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
